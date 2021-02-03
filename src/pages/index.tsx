@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { connect, LocalVideoTrack, RemoteParticipant } from 'twilio-video';
+import { connect, LocalVideoTrack, RemoteParticipant, VideoTrack } from 'twilio-video';
 import { createBodyPixStream } from '../libs/createBodyPixStream';
 import { getRoomToken } from '../libs/getRoomToken';
 
@@ -9,32 +9,36 @@ if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem('name')) {
   sessionStorage.setItem('name', new Date().toUTCString());
 }
 
+const getDisplayMedia = (options?: { audio?: boolean; video?: boolean }) => {
+  return (navigator.mediaDevices as MediaDevices & {
+    getDisplayMedia: () => Promise<MediaStream>;
+  }).getDisplayMedia();
+};
+
 const Page = () => {
-  const [localVideo, setLocalVideo] = useState<HTMLVideoElement>(null);
-  const [remoteVideos, setRemoteVideos] = useState<HTMLMediaElement[]>([]);
+  const [localVideo, setLocalVideo] = useState<VideoTrack>(null);
+  const [remoteVideos, setRemoteVideos] = useState<VideoTrack[]>([]);
   useEffect(() => {
     const addParticipant = (participant: RemoteParticipant) => {
       participant.on('trackSubscribed', (track) => {
         console.log('trackSubscribed', track);
         if ('attach' in track) {
-          setRemoteVideos((videos) => [...videos, track.attach()]);
+          setRemoteVideos((videos) => [...videos, track as VideoTrack]);
         }
       });
       participant.on('trackUnsubscribed', (track) => {
         console.log('trackUnsubscribed', track);
         if ('detach' in track)
-          track.detach().forEach((element) => {
-            setRemoteVideos((remoteVideos) => remoteVideos.filter((video) => video !== element));
-            element.remove();
-          });
+          setRemoteVideos((remoteVideos) => remoteVideos.filter((video) => video !== track));
       });
     };
 
     getRoomToken(RoomName, sessionStorage.getItem('name')).then((token) => {
       let track: LocalVideoTrack;
       createBodyPixStream({ width: 640, height: 480 }).then((tracks) => {
+        //getDisplayMedia({ audio: false, video: true }).then((tracks) => {
         track = new LocalVideoTrack(tracks.getTracks()[0]);
-        setLocalVideo(track.attach());
+        setLocalVideo(track);
         connect(token, {
           audio: true,
           name: RoomName,
@@ -55,8 +59,25 @@ const Page = () => {
           box-sizing: content-box;
         }
       `}</style>
-      <div className="videoList">{localVideo}</div>
-      <div className="videoList">{remoteVideos}</div>
+      <div className="videoList">
+        {localVideo && (
+          <video
+            autoPlay
+            ref={(video) =>
+              video && (video.srcObject = new MediaStream([localVideo.mediaStreamTrack]))
+            }
+          />
+        )}
+      </div>
+      <div className="videoList">
+        {remoteVideos.map((track) => (
+          <video
+            key={track.name}
+            autoPlay
+            ref={(video) => video && (video.srcObject = new MediaStream([track.mediaStreamTrack]))}
+          />
+        ))}
+      </div>
     </>
   );
 };

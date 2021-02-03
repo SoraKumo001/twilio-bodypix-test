@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { connect, LocalVideoTrack, RemoteParticipant, VideoTrack } from 'twilio-video';
-import { createBodyPixStream } from '../libs/createBodyPixStream';
-import { getRoomToken } from '../libs/getRoomToken';
+import { LocalVideoTrack, VideoTrack } from 'twilio-video';
+import { useTwilioToken } from '../hooks/useTwillioToken';
+import { useTwilio } from './../hooks/useTwilio';
+import { StreamType, useLocalStream } from '../hooks/useLocalStream';
 
 const RoomName = 'Test';
 
@@ -9,48 +10,21 @@ if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem('name')) {
   sessionStorage.setItem('name', new Date().toUTCString());
 }
 
-const getDisplayMedia = (options?: { audio?: boolean; video?: boolean }) => {
-  return (navigator.mediaDevices as MediaDevices & {
-    getDisplayMedia: () => Promise<MediaStream>;
-  }).getDisplayMedia();
-};
-
 const Page = () => {
+  const [streamType, setStreamType] = useState<StreamType>('camera-blur');
   const [localVideo, setLocalVideo] = useState<VideoTrack>(null);
-  const [remoteVideos, setRemoteVideos] = useState<VideoTrack[]>([]);
+  const token = useTwilioToken({ roomName: RoomName });
+  const stream = useLocalStream({ type: streamType });
+  const remoteVideos = useTwilio({ token, stream, roomName: RoomName });
   useEffect(() => {
-    const addParticipant = (participant: RemoteParticipant) => {
-      participant.on('trackSubscribed', (track) => {
-        console.log('trackSubscribed', track);
-        if ('attach' in track) {
-          setRemoteVideos((videos) => [...videos, track as VideoTrack]);
-        }
-      });
-      participant.on('trackUnsubscribed', (track) => {
-        console.log('trackUnsubscribed', track);
-        if ('detach' in track)
-          setRemoteVideos((remoteVideos) => remoteVideos.filter((video) => video !== track));
-      });
-    };
+    if (!stream) return;
+    const track = new LocalVideoTrack(stream.getTracks().find((track) => track.kind === 'video'));
+    setLocalVideo(track);
+  }, [stream]);
 
-    getRoomToken(RoomName, sessionStorage.getItem('name')).then((token) => {
-      let track: LocalVideoTrack;
-      createBodyPixStream({ width: 640, height: 480 }).then((tracks) => {
-        //getDisplayMedia({ audio: false, video: true }).then((tracks) => {
-        track = new LocalVideoTrack(tracks.getTracks()[0]);
-        setLocalVideo(track);
-        connect(token, {
-          audio: true,
-          name: RoomName,
-          tracks: tracks.getVideoTracks(),
-        }).then((room) => {
-          console.log(`Connected to Room: ${room.name}`);
-          room.participants.forEach(addParticipant);
-          room.on('participantConnected', addParticipant);
-        });
-      });
-    });
-  }, []);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setStreamType(e.target.value as StreamType);
+  };
   return (
     <>
       <style jsx>{`
@@ -59,9 +33,32 @@ const Page = () => {
           box-sizing: content-box;
         }
       `}</style>
+      <form>
+        <label>
+          <input
+            type="radio"
+            name="type"
+            value="camera-blur"
+            onChange={handleChange}
+            defaultChecked={true}
+          />
+          Camera(ブラー)
+        </label>
+        <label>
+          <input type="radio" name="type" value="camera" onChange={handleChange} />
+          Camera
+        </label>
+        <label>
+          <input type="radio" name="type" value="screen" onChange={handleChange} />
+          Screen
+        </label>
+      </form>
       <div className="videoList">
+        <div>Local</div>
         {localVideo && (
           <video
+            width={640}
+            height={480}
             autoPlay
             ref={(video) =>
               video && (video.srcObject = new MediaStream([localVideo.mediaStreamTrack]))
@@ -70,11 +67,16 @@ const Page = () => {
         )}
       </div>
       <div className="videoList">
+        <div>Remote</div>
         {remoteVideos.map((track) => (
           <video
+            width={640}
+            height={480}
             key={track.name}
             autoPlay
-            ref={(video) => video && (video.srcObject = new MediaStream([track.mediaStreamTrack]))}
+            ref={(video) =>
+              video && (video.srcObject = new MediaStream([(track as VideoTrack).mediaStreamTrack]))
+            }
           />
         ))}
       </div>

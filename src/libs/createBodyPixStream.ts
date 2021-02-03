@@ -14,6 +14,7 @@ interface Props {
   backgroundBlurAmount?: number;
   edgeBlurAmount?: number;
   flipHorizontal?: boolean;
+  audio?: boolean;
 }
 
 const BodyPixParams: ModelConfig = {
@@ -30,7 +31,8 @@ export const createBodyPixStream = ({
   maskUpdate = 500,
   backgroundBlurAmount = 5,
   edgeBlurAmount = 3,
-  flipHorizontal = true,
+  flipHorizontal = false,
+  audio = true,
 }: Props): Promise<MediaStream> => {
   return new Promise((resolve) => {
     navigator.mediaDevices
@@ -41,7 +43,15 @@ export const createBodyPixStream = ({
         },
         audio: false,
       })
-      .then((stream) => {
+      .then(async (videoStream) => {
+        if (!audio) return [videoStream, null];
+        const audioStream = await navigator.mediaDevices.getUserMedia({
+          video: false,
+          audio: true,
+        });
+        return [videoStream, audioStream];
+      })
+      .then(([stream, audio]) => {
         const canvas = document.createElement('canvas') as CanvasElement;
         canvas.width = width;
         canvas.height = height;
@@ -51,6 +61,7 @@ export const createBodyPixStream = ({
         inputVideo.autoplay = true;
         inputVideo.srcObject = stream;
         let time = performance.now();
+        let animationNumber;
         inputVideo.onloadedmetadata = async () => {
           const bodypixnet = await bodyPix.load(BodyPixParams);
           let segmentation = await bodypixnet.segmentPerson(inputVideo);
@@ -68,10 +79,16 @@ export const createBodyPixStream = ({
               edgeBlurAmount,
               flipHorizontal
             );
-            requestAnimationFrame(render);
+            animationNumber = requestAnimationFrame(render);
           };
           render();
-          resolve(canvas.captureStream(fps));
+          const outputStream = canvas.captureStream(fps);
+          audio?.getAudioTracks().forEach((track) => outputStream.addTrack(track));
+          outputStream.addEventListener('stop', () => {
+            cancelAnimationFrame(animationNumber);
+            bodypixnet.dispose();
+          });
+          resolve(outputStream);
         };
       });
   });

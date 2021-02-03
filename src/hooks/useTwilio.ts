@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { connect, RemoteParticipant, RemoteTrack, VideoTrack } from 'twilio-video';
+import { connect, RemoteAudioTrack, RemoteParticipant, RemoteVideoTrack } from 'twilio-video';
 
 interface Props {
   token: string;
@@ -7,10 +7,13 @@ interface Props {
   stream: MediaStream;
 }
 export const useTwilio = ({ token, roomName, stream }: Props) => {
-  const [remoteVideos, setRemoteVideos] = useState<RemoteTrack[]>([]);
+  const [remoteVideos, setRemoteVideos] = useState<(RemoteVideoTrack | RemoteAudioTrack)[]>([]);
   const addParticipant = (participant: RemoteParticipant) => {
-    participant.on('trackSubscribed', (track) => {
-      setRemoteVideos((videos) => [...videos, track]);
+    participant.on('trackSubscribed', (track, publication) => {
+      console.log(publication);
+      if (track.kind === 'video' || track.kind === 'audio') {
+        setRemoteVideos((videos) => [...videos, track]);
+      }
     });
     participant.on('trackUnsubscribed', (track) => {
       setRemoteVideos((remoteVideos) => remoteVideos.filter((video) => video !== track));
@@ -19,6 +22,7 @@ export const useTwilio = ({ token, roomName, stream }: Props) => {
 
   useEffect(() => {
     if (!token || !roomName || !stream) return;
+    console.log(stream.getTracks())
     connect(token, {
       audio: true,
       name: roomName,

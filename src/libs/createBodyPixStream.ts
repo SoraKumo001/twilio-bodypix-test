@@ -27,7 +27,7 @@ const BodyPixParams: ModelConfig = {
 export const createBodyPixStream = ({
   width = 640,
   height = 480,
-  fps = 15,
+  fps = 30,
   maskUpdate = 500,
   backgroundBlurAmount = 5,
   edgeBlurAmount = 3,
@@ -61,7 +61,7 @@ export const createBodyPixStream = ({
         inputVideo.autoplay = true;
         inputVideo.srcObject = stream;
         let time = performance.now();
-        let animationNumber;
+        let animationNumber: number;
         inputVideo.onloadedmetadata = async () => {
           const bodypixnet = await bodyPix.load(BodyPixParams);
           let segmentation = await bodypixnet.segmentPerson(inputVideo);

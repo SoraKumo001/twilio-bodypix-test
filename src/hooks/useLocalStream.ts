@@ -26,7 +26,7 @@ export const useLocalStream = ({ type, width = 640, height = 480 }: Props) => {
               width,
               height,
             },
-            audio: false,
+            audio: true,
           })
           .then(setStream);
         break;

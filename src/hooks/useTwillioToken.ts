@@ -3,12 +3,13 @@ import { getRoomToken } from '../libs/getRoomToken';
 
 interface Props {
   roomName: string;
+  sessionName: string | null;
 }
 
-export const useTwilioToken = ({ roomName }: Props) => {
+export const useTwilioToken = ({ roomName, sessionName }: Props) => {
   const [token, setToken] = useState<string>(null);
   useEffect(() => {
-    roomName && getRoomToken(roomName, sessionStorage.getItem('name')).then(setToken);
-  }, [roomName]);
+    roomName && sessionName && getRoomToken(roomName, sessionName).then(setToken);
+  }, [roomName, sessionName]);
   return token;
 };

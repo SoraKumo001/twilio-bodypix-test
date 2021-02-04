@@ -9,7 +9,7 @@ const index: NextApiHandler = (req, res) => {
 
   const { name, room } = req.query;
 
-  const accessToken = new jwt.AccessToken(ACCOUNT_SID, API_KEY_SID, API_KEY_SECRET, {
+  const accessToken = new jwt.AccessToken(ACCOUNT_SID!, API_KEY_SID!, API_KEY_SECRET!, {
     identity: typeof name === 'string' ? name : '',
   });
   const grant = new jwt.AccessToken.VideoGrant({

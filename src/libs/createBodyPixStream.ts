@@ -44,14 +44,15 @@ export const createBodyPixStream = ({
         audio: false,
       })
       .then(async (videoStream) => {
-        if (!audio) return [videoStream, null];
-        const audioStream = await navigator.mediaDevices.getUserMedia({
-          video: false,
-          audio: true,
-        });
+        const audioStream = audio
+          ? await navigator.mediaDevices.getUserMedia({
+              video: false,
+              audio: true,
+            })
+          : null;
         return [videoStream, audioStream];
       })
-      .then(([stream, audio]) => {
+      .then(([video, audio]) => {
         const canvas = document.createElement('canvas') as CanvasElement;
         canvas.width = width;
         canvas.height = height;
@@ -59,13 +60,14 @@ export const createBodyPixStream = ({
         inputVideo.width = width;
         inputVideo.height = height;
         inputVideo.autoplay = true;
-        inputVideo.srcObject = stream;
+        inputVideo.srcObject = video;
         let time = performance.now();
         let animationNumber: number;
         inputVideo.onloadedmetadata = async () => {
-          const bodypixnet = await bodyPix.load(BodyPixParams);
+          let bodypixnet: bodyPix.BodyPix | null = await bodyPix.load(BodyPixParams);
           let segmentation = await bodypixnet.segmentPerson(inputVideo);
           const render = async () => {
+            if (!bodypixnet) return;
             const now = performance.now();
             if (now - time > maskUpdate) {
               time = now;
@@ -86,7 +88,12 @@ export const createBodyPixStream = ({
           audio?.getAudioTracks().forEach((track) => outputStream.addTrack(track));
           outputStream.addEventListener('stop', () => {
             cancelAnimationFrame(animationNumber);
-            bodypixnet.dispose();
+            outputStream.getTracks().forEach((track) => {
+              track.stop();
+              outputStream.removeTrack(track);
+            });
+            bodypixnet?.dispose();
+            bodypixnet = null;
           });
           resolve(outputStream);
         };

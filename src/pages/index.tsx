@@ -47,7 +47,7 @@ const Page = () => {
             width={640}
             height={480}
             autoPlay
-            ref={(video) => video && (video.srcObject = stream)}
+            ref={(video) => video && video.srcObject !== stream && (video.srcObject = stream)}
           />
         )}
       </div>
@@ -60,11 +60,11 @@ const Page = () => {
         </div>
         {remoteStream.map((media) => (
           <video
+            key={media.id}
             width={640}
             height={480}
-            key={media.id}
             autoPlay
-            ref={(video) => video && (video.srcObject = media)}
+            ref={(video) => video && video.srcObject !== stream && (video.srcObject = media)}
           />
         ))}
       </div>

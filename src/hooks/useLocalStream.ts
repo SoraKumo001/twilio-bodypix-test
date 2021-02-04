@@ -16,7 +16,7 @@ interface Props {
 }
 
 export const useLocalStream = ({ type, width = 640, height = 480 }: Props) => {
-  const [stream, setStream] = useState<MediaStream>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   useEffect(() => {
     switch (type) {
       case 'camera':
@@ -45,8 +45,8 @@ export const useLocalStream = ({ type, width = 640, height = 480 }: Props) => {
             track.stop();
           });
           stream.dispatchEvent(new Event('stop'));
-          return null;
         }
+        return null;
       });
     };
   }, [type]);

@@ -7,7 +7,7 @@ interface Props {
 }
 
 export const useTwilioToken = ({ roomName, sessionName }: Props) => {
-  const [token, setToken] = useState<string>(null);
+  const [token, setToken] = useState<string | null>(null);
   useEffect(() => {
     roomName && sessionName && getRoomToken(roomName, sessionName).then(setToken);
   }, [roomName, sessionName]);

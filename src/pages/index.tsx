@@ -1,7 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { LocalVideoTrack } from 'twilio-video';
+import React, { useCallback, useState } from 'react';
 import { useTwilioToken } from '../hooks/useTwillioToken';
-import { useTwilio } from './../hooks/useTwilio';
+import { useTwilioRoom } from '../hooks/useTwilioRoom';
 import { StreamType, useLocalStream } from '../hooks/useLocalStream';
 import { createSessionName } from '../libs/createSessionName';
 import styles from './index.module.css';
@@ -13,15 +12,11 @@ const Page = () => {
   const [streamType, setStreamType] = useState<StreamType>('camera-blur');
   const token = useTwilioToken({ roomName: RoomName, sessionName: SessionName });
   const stream = useLocalStream({ type: streamType });
-  const remoteVideos = useTwilio({ token, stream, roomName: RoomName });
-  const localVideo = useMemo(
-    () =>
-      stream
-        ? new LocalVideoTrack(stream.getTracks().find((track) => track.kind === 'video'))
-        : null,
-    [stream]
-  );
-
+  const { remoteStream, state, error } = useTwilioRoom({
+    token,
+    stream,
+    roomName: RoomName,
+  });
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setStreamType(e.target.value as StreamType);
   }, []);
@@ -47,40 +42,31 @@ const Page = () => {
       </form>
       <div className={styles.videoList}>
         <div className={styles.message}>Local</div>
-        {localVideo && (
+        {stream && (
           <video
             width={640}
             height={480}
             autoPlay
-            ref={(video) =>
-              video && (video.srcObject = new MediaStream([localVideo.mediaStreamTrack]))
-            }
+            ref={(video) => video && (video.srcObject = stream)}
           />
         )}
       </div>
       <div className={styles.videoList}>
-        <div className={styles.message}>Remote</div>
-        {remoteVideos.map((track) =>
-          track.kind === 'video' ? (
-            <video
-              width={640}
-              height={480}
-              key={track.name}
-              autoPlay
-              ref={(video) =>
-                video && (video.srcObject = new MediaStream([track.mediaStreamTrack]))
-              }
-            />
-          ) : (
-            <audio
-              key={track.name}
-              autoPlay
-              ref={(video) =>
-                video && (video.srcObject = new MediaStream([track.mediaStreamTrack]))
-              }
-            />
-          )
-        )}
+        <div className={styles.message}>
+          <div>Remote</div>
+          {state === 'disconnected' && <div>未接続</div>}
+          {state === 'connecting' && <div>接続中</div>}
+          {error && <div>接続エラー</div>}
+        </div>
+        {remoteStream.map((media) => (
+          <video
+            width={640}
+            height={480}
+            key={media.id}
+            autoPlay
+            ref={(video) => video && (video.srcObject = media)}
+          />
+        ))}
       </div>
     </>
   );

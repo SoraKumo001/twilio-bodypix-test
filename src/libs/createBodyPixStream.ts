@@ -41,18 +41,9 @@ export const createBodyPixStream = ({
           width,
           height,
         },
-        audio: false,
+        audio,
       })
-      .then(async (videoStream) => {
-        const audioStream = audio
-          ? await navigator.mediaDevices.getUserMedia({
-              video: false,
-              audio: true,
-            })
-          : null;
-        return [videoStream, audioStream];
-      })
-      .then(([video, audio]) => {
+      .then((video) => {
         const canvas = document.createElement('canvas') as CanvasElement;
         canvas.width = width;
         canvas.height = height;
@@ -60,7 +51,7 @@ export const createBodyPixStream = ({
         inputVideo.width = width;
         inputVideo.height = height;
         inputVideo.autoplay = true;
-        inputVideo.srcObject = video;
+        inputVideo.srcObject = new MediaStream(video.getVideoTracks());
         let time = performance.now();
         let animationNumber: number;
         inputVideo.onloadedmetadata = async () => {
@@ -85,7 +76,7 @@ export const createBodyPixStream = ({
           };
           render();
           const outputStream = canvas.captureStream(fps);
-          audio?.getAudioTracks().forEach((track) => outputStream.addTrack(track));
+          if (audio) video.getAudioTracks().forEach((track) => outputStream.addTrack(track));
           outputStream.addEventListener('stop', () => {
             cancelAnimationFrame(animationNumber);
             outputStream.getTracks().forEach((track) => {

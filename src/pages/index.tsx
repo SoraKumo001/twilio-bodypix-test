@@ -46,6 +46,7 @@ const Page = () => {
           <video
             width={640}
             height={480}
+            muted
             autoPlay
             ref={(video) => video && video.srcObject !== stream && (video.srcObject = stream)}
           />

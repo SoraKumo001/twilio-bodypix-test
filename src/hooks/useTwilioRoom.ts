@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { connect, RemoteParticipant } from 'twilio-video';
+import { connect, RemoteParticipant, Room } from 'twilio-video';
 
 type TwilioRoomState = 'connecting' | 'connected' | 'disconnected';
 type ParticipantMediaStream = MediaStream & { participant: RemoteParticipant };
@@ -8,7 +8,9 @@ interface Props {
   roomName: string | null;
   stream: MediaStream | null;
 }
+
 export const useTwilioRoom = ({ token, roomName, stream }: Props) => {
+  const [room, setRoom] = useState<Room | null>(null);
   const [error, setError] = useState(null);
   const [state, setState] = useState<TwilioRoomState>('disconnected');
   const [remoteStream, setRemoteStream] = useState<ParticipantMediaStream[]>([]);
@@ -29,18 +31,22 @@ export const useTwilioRoom = ({ token, roomName, stream }: Props) => {
   };
   useEffect(() => {
     setError(null);
-    if (!token || !roomName || !stream) return;
+    if (!token || !roomName || !stream || room) return;
     setState('connecting');
     connect(token, {
       audio: true,
       name: roomName,
-      tracks: stream?.getTracks(),
+      tracks: stream.getTracks(),
     })
       .then((room) => {
+        setRoom(room);
         setState('connected');
         room.participants.forEach(addParticipant);
         room.addListener('participantConnected', addParticipant);
-        room.addListener('disconnected', () => {
+        room.on('disconnected', () => {
+          const tracks = Array.from(room.localParticipant.tracks.values()).map((t) => t.track);
+          room.localParticipant.unpublishTracks(tracks);
+          setRoom(null);
           setState('disconnected');
           setRemoteStream([]);
         });
@@ -49,8 +55,21 @@ export const useTwilioRoom = ({ token, roomName, stream }: Props) => {
         setState('disconnected');
         setError(e);
       });
-    return () => {};
   }, [token, roomName, stream]);
-
+  useEffect(() => {
+    if (room && stream) {
+      const tracks = Array.from(room.localParticipant.tracks.values()).map((t) => t.track);
+      room.localParticipant.unpublishTracks(tracks);
+      room.localParticipant.publishTracks(stream.getTracks());
+    }
+  }, [room, stream]);
+  useEffect(() => {
+    addEventListener('beforeunload', () => {
+      room?.disconnect();
+    });
+    return () => {
+      room?.disconnect();
+    };
+  }, []);
   return { error, remoteStream, state };
 };

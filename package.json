@@ -7,7 +7,9 @@
     "dev": "next",
     "build": "next build",
     "start": "next start",
-    "export": "next export"
+    "export": "next export",
+    "lint": "eslint src",
+    "lint:fix": "eslint --fix src"
   },
   "dependencies": {
     "@tensorflow-models/body-pix": "^2.0.5",

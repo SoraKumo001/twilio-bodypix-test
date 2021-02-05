@@ -44,12 +44,13 @@ export const createBodyPixStream = ({
         audio,
       })
       .then((video) => {
+        const settings = video.getVideoTracks()[0]?.getSettings();
         const canvas = document.createElement('canvas') as CanvasElement;
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = settings.width || width;
+        canvas.height = settings.height || height;
         const inputVideo = document.createElement('video');
-        inputVideo.width = width;
-        inputVideo.height = height;
+        inputVideo.width = settings.width || width;
+        inputVideo.height = settings.height || height;
         inputVideo.autoplay = true;
         inputVideo.srcObject = new MediaStream(video.getVideoTracks());
         let time = performance.now();

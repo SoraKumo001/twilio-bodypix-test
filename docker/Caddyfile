@@ -1,0 +1,13 @@
+(default) {
+    file_server
+    push
+    @encode {
+        header content-type text/html
+    }
+    encode @encode zstd gzip
+}
+
+localhost:443 {
+    import default
+    reverse_proxy * host.docker.internal:3000
+}

@@ -9,7 +9,11 @@
     "start": "next start",
     "export": "next export",
     "lint": "eslint src",
-    "lint:fix": "eslint --fix src"
+    "lint:fix": "eslint --fix src",
+    "docker:start": "docker-compose --env-file .env-deploy  -p twilio-bodypix-test -f docker/docker-compose.yml up -d",
+    "docker:build": "docker-compose -p twilio-bodypix-test -f docker/docker-compose.yml build --parallel --compress --pull",
+    "docker:upload": "docker save twilio-bodypix-test_node | env-exec -e .env-deploy docker load",
+    "docker:deploy": "yarn docker:build && yarn docker:upload && docker:start"
   },
   "dependencies": {
     "@tensorflow-models/body-pix": "^2.0.5",
@@ -25,6 +29,7 @@
     "@types/react": "^17.0.0",
     "@typescript-eslint/eslint-plugin": "^4.14.2",
     "@typescript-eslint/parser": "^4.14.2",
+    "env-exec": "^1.0.0",
     "eslint": "^7.19.0",
     "eslint-config-prettier": "^7.2.0",
     "eslint-plugin-prettier": "^3.3.1",

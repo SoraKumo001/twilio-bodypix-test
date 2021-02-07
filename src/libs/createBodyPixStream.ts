@@ -54,7 +54,7 @@ export const createBodyPixStream = ({
         inputVideo.autoplay = true;
         inputVideo.srcObject = new MediaStream(video.getVideoTracks());
         let time = performance.now();
-        let animationNumber: number;
+        let animationNumber = 0;
         inputVideo.onloadedmetadata = async () => {
           let bodypixnet: bodyPix.BodyPix | null = await bodyPix.load(BodyPixParams);
           let segmentation = await bodypixnet.segmentPerson(inputVideo);
@@ -79,7 +79,7 @@ export const createBodyPixStream = ({
           const outputStream = canvas.captureStream(fps);
           if (audio) video.getAudioTracks().forEach((track) => outputStream.addTrack(track));
           outputStream.addEventListener('stop', () => {
-            cancelAnimationFrame(animationNumber);
+            animationNumber && cancelAnimationFrame(animationNumber);
             outputStream.getTracks().forEach((track) => {
               track.stop();
               outputStream.removeTrack(track);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { connect, RemoteParticipant, Room } from 'twilio-video';
+import { connect, LocalAudioTrack, LocalVideoTrack, RemoteParticipant, Room } from 'twilio-video';
 
 type TwilioRoomState = 'connecting' | 'connected' | 'disconnected';
 type ParticipantMediaStream = MediaStream & { participant: RemoteParticipant };
@@ -31,7 +31,18 @@ export const useTwilioRoom = ({ token, roomName, stream }: Props) => {
   };
   useEffect(() => {
     setError(null);
-    if (!token || !roomName || !stream || room) return;
+    if (
+      !token ||
+      !roomName ||
+      !stream ||
+      (room && room.name === roomName) ||
+      state === 'connecting'
+    )
+      return;
+    if (room) {
+      room.disconnect(); //
+      return;
+    }
     setState('connecting');
     connect(token, {
       audio: true,
@@ -55,12 +66,20 @@ export const useTwilioRoom = ({ token, roomName, stream }: Props) => {
         setState('disconnected');
         setError(e);
       });
-  }, [token, roomName, stream]);
+  }, [token, roomName, stream, state]);
   useEffect(() => {
     if (room && stream) {
-      const tracks = Array.from(room.localParticipant.tracks.values()).map((t) => t.track);
-      room.localParticipant.unpublishTracks(tracks);
-      room.localParticipant.publishTracks(stream.getTracks());
+      const tracks = Array.from(room.localParticipant.tracks.values()).map(
+        (t) => t.track as LocalAudioTrack | LocalVideoTrack
+      );
+      const removeTracks = tracks.filter(
+        (track) => !stream.getTracks().includes(track.mediaStreamTrack)
+      );
+      const addTracks = stream
+        .getTracks()
+        .filter((track) => !tracks.map((track) => track.mediaStreamTrack).includes(track));
+      room.localParticipant.unpublishTracks(removeTracks);
+      room.localParticipant.publishTracks(addTracks);
     }
   }, [room, stream]);
   useEffect(() => {
@@ -71,5 +90,5 @@ export const useTwilioRoom = ({ token, roomName, stream }: Props) => {
       room?.disconnect();
     };
   }, []);
-  return { error, remoteStream, state };
+  return { error, remoteStream, state, room };
 };

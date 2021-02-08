@@ -5,15 +5,14 @@ import { ModelConfig } from '@tensorflow-models/body-pix/dist/body_pix_model';
 interface CanvasCaptureMediaStreamTrack extends MediaStreamTrack {
   requestFrame(): void;
 }
-declare interface CanvasMediaStream extends MediaStream {
+interface CanvasMediaStream extends MediaStream {
   getAudioTracks(): CanvasCaptureMediaStreamTrack[];
   getTrackById(trackId: string): CanvasCaptureMediaStreamTrack | null;
   getTracks(): CanvasCaptureMediaStreamTrack[];
   getVideoTracks(): CanvasCaptureMediaStreamTrack[];
 }
-declare interface CanvasElement extends HTMLCanvasElement {
+interface CanvasElement extends HTMLCanvasElement {
   captureStream(frameRate?: number): CanvasMediaStream;
-  mozCaptureStream(frameRate?: number): CanvasMediaStream;
 }
 
 interface Props {
@@ -61,12 +60,12 @@ export const createBodyPixStream = ({
         let time = performance.now();
         let animationNumber = 0;
         inputVideo.onloadedmetadata = async () => {
-          const settings = video.getVideoTracks()[0].getSettings();
+          const settings = video.getVideoTracks()[0].getSettings() as Required<MediaTrackSettings>;
           const canvas = document.createElement('canvas') as CanvasElement;
-          canvas.width = settings.width!;
-          canvas.height = settings.height!;
-          inputVideo.width = settings.width!;
-          inputVideo.height = settings.height!;
+          canvas.width = settings.width;
+          canvas.height = settings.height;
+          inputVideo.width = settings.width;
+          inputVideo.height = settings.height;
           let bodypixnet: bodyPix.BodyPix | null = await bodyPix.load(BodyPixParams);
           let segmentation = await bodypixnet.segmentPerson(inputVideo);
           const outputStream = canvas.captureStream(0);

@@ -22,17 +22,20 @@ const Page = () => {
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setStreamType(e.target.value as StreamType);
   }, []);
-  const handleRoomClick = useCallback(() => {
-    setRoomName(refRoomInput.current!.value);
-    return false;
-  }, []);
+  const handleRoomClick = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement> | React.MouseEvent<HTMLInputElement, MouseEvent>) => {
+      setRoomName(refRoomInput.current!.value);
+      e.preventDefault();
+    },
+    []
+  );
   return (
     <>
       <form>
         <input type="button" onClick={handleRoomClick} value="Join" placeholder="Room" />
         <input
           ref={refRoomInput}
-          onKeyPress={(e) => e.key == 'Enter' && handleRoomClick()}
+          onKeyPress={(e) => e.key == 'Enter' && handleRoomClick(e)}
           defaultValue={RoomName}
         />
         {[

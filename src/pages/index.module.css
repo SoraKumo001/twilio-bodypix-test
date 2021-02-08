@@ -9,3 +9,6 @@
   font-weight: bolder;
   -webkit-text-stroke: 0.2px white;
 }
+.video {
+  max-width: 100%;
+}

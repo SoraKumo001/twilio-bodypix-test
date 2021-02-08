@@ -2,8 +2,18 @@ import '@tensorflow/tfjs';
 import * as bodyPix from '@tensorflow-models/body-pix';
 import { ModelConfig } from '@tensorflow-models/body-pix/dist/body_pix_model';
 
+interface CanvasCaptureMediaStreamTrack extends MediaStreamTrack {
+  requestFrame(): void;
+}
+declare interface CanvasMediaStream extends MediaStream {
+  getAudioTracks(): CanvasCaptureMediaStreamTrack[];
+  getTrackById(trackId: string): CanvasCaptureMediaStreamTrack | null;
+  getTracks(): CanvasCaptureMediaStreamTrack[];
+  getVideoTracks(): CanvasCaptureMediaStreamTrack[];
+}
 declare interface CanvasElement extends HTMLCanvasElement {
-  captureStream(frameRate?: number): MediaStream;
+  captureStream(frameRate?: number): CanvasMediaStream;
+  mozCaptureStream(frameRate?: number): CanvasMediaStream;
 }
 
 interface Props {
@@ -25,9 +35,9 @@ const BodyPixParams: ModelConfig = {
 };
 
 export const createBodyPixStream = ({
-  width = 640,
-  height = 480,
-  fps = 30,
+  width,
+  height,
+  fps,
   maskUpdate = 500,
   backgroundBlurAmount = 5,
   edgeBlurAmount = 3,
@@ -40,24 +50,27 @@ export const createBodyPixStream = ({
         video: {
           width,
           height,
+          frameRate: fps,
         },
         audio,
       })
       .then((video) => {
-        const settings = video.getVideoTracks()[0]?.getSettings();
-        const canvas = document.createElement('canvas') as CanvasElement;
-        canvas.width = settings.width || width;
-        canvas.height = settings.height || height;
         const inputVideo = document.createElement('video');
-        inputVideo.width = settings.width || width;
-        inputVideo.height = settings.height || height;
         inputVideo.autoplay = true;
         inputVideo.srcObject = new MediaStream(video.getVideoTracks());
         let time = performance.now();
         let animationNumber = 0;
         inputVideo.onloadedmetadata = async () => {
+          const settings = video.getVideoTracks()[0].getSettings();
+          const canvas = document.createElement('canvas') as CanvasElement;
+          canvas.width = settings.width!;
+          canvas.height = settings.height!;
+          inputVideo.width = settings.width!;
+          inputVideo.height = settings.height!;
           let bodypixnet: bodyPix.BodyPix | null = await bodyPix.load(BodyPixParams);
           let segmentation = await bodypixnet.segmentPerson(inputVideo);
+          const outputStream = canvas.captureStream(0);
+          const videoStream = outputStream.getVideoTracks()[0];
           const render = async () => {
             if (!bodypixnet) return;
             const now = performance.now();
@@ -73,20 +86,23 @@ export const createBodyPixStream = ({
               edgeBlurAmount,
               flipHorizontal
             );
+            videoStream.requestFrame();
             animationNumber = requestAnimationFrame(render);
           };
           render();
-          const outputStream = canvas.captureStream(fps);
+
           if (audio) video.getAudioTracks().forEach((track) => outputStream.addTrack(track));
-          outputStream.addEventListener('stop', () => {
+          const handleStop = () => {
             animationNumber && cancelAnimationFrame(animationNumber);
             outputStream.getTracks().forEach((track) => {
               track.stop();
               outputStream.removeTrack(track);
             });
+            outputStream.removeEventListener('stop', handleStop);
             bodypixnet?.dispose();
             bodypixnet = null;
-          });
+          };
+          outputStream.addEventListener('stop', handleStop);
           resolve(outputStream);
         };
       });

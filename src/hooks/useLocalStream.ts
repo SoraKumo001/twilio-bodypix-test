@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { createBodyPixStream } from '../libs/createBodyPixStream';
 
 const getDisplayMedia = (options?: { audio?: boolean; video?: boolean }) => {
-  return (navigator.mediaDevices as MediaDevices & {
+  const promise = (navigator.mediaDevices as MediaDevices & {
     getDisplayMedia: (options?: { audio?: boolean; video?: boolean }) => Promise<MediaStream>;
-  }).getDisplayMedia(options);
+  }).getDisplayMedia?.(options);
+  if (promise) return promise;
+  return new Promise<MediaStream>((_, reject) => reject);
 };
 
 export type StreamType = 'camera' | 'camera-blur' | 'screen';
@@ -15,7 +17,7 @@ interface Props {
   height?: number;
 }
 
-export const useLocalStream = ({ type, width = 640, height = 480 }: Props) => {
+export const useLocalStream = ({ type, width, height }: Props) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   useEffect(() => {
     switch (type) {
@@ -28,13 +30,18 @@ export const useLocalStream = ({ type, width = 640, height = 480 }: Props) => {
             },
             audio: true,
           })
-          .then(setStream);
+          .then(setStream)
+          .catch(() => setStream(null));
         break;
       case 'screen':
-        getDisplayMedia({ audio: false }).then(setStream);
+        getDisplayMedia({ audio: false })
+          .then(setStream)
+          .catch(() => setStream(null));
         break;
       case 'camera-blur':
-        createBodyPixStream({ width, height, audio: true }).then(setStream);
+        createBodyPixStream({ width, height, audio: true })
+          .then(setStream)
+          .catch(() => setStream(null));
         break;
     }
     return () => {

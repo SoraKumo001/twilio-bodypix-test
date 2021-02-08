@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
+import Head from 'next/head';
 import { useTwilioToken } from '../hooks/useTwillioToken';
 import { useTwilioRoom } from '../hooks/useTwilioRoom';
 import { StreamType, useLocalStream } from '../hooks/useLocalStream';
@@ -31,13 +32,18 @@ const Page = () => {
   );
   return (
     <>
+      <Head>
+        <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+      </Head>
       <form>
-        <input type="button" onClick={handleRoomClick} value="Join" placeholder="Room" />
-        <input
-          ref={refRoomInput}
-          onKeyPress={(e) => e.key == 'Enter' && handleRoomClick(e)}
-          defaultValue={RoomName}
-        />
+        <div>
+          <input type="button" onClick={handleRoomClick} value="Join" placeholder="Room" />
+          <input
+            ref={refRoomInput}
+            onKeyPress={(e) => e.key == 'Enter' && handleRoomClick(e)}
+            defaultValue={RoomName}
+          />
+        </div>
         {[
           ['camera', 'Camera'],
           ['camera-blur', 'Camera(Blur)'],
@@ -59,8 +65,7 @@ const Page = () => {
         <div className={styles.message}>Local</div>
         {stream && (
           <video
-            width={640}
-            height={480}
+            className={styles.video}
             muted
             autoPlay
             ref={(video) => video && video.srcObject !== stream && (video.srcObject = stream)}
@@ -78,10 +83,9 @@ const Page = () => {
         {remoteStream.map((media) => (
           <video
             key={media.id}
-            width={640}
-            height={480}
+            className={styles.video}
             autoPlay
-            ref={(video) => video && video.srcObject !== stream && (video.srcObject = media)}
+            ref={(video) => video && video.srcObject !== media && (video.srcObject = media)}
           />
         ))}
       </div>

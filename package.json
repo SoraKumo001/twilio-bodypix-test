@@ -13,7 +13,7 @@
     "docker:start": "docker-compose --env-file .env-deploy  -p twilio-bodypix-test -f docker/docker-compose.yml up -d",
     "docker:build": "docker-compose -p twilio-bodypix-test -f docker/docker-compose.yml build --parallel --compress --pull",
     "docker:upload": "docker save twilio-bodypix-test_node | env-exec -e .env-deploy docker load",
-    "docker:deploy": "yarn docker:build && yarn docker:upload && docker:start"
+    "docker:deploy": "yarn docker:build && yarn docker:upload && yarn docker:start"
   },
   "dependencies": {
     "@tensorflow-models/body-pix": "^2.0.5",
@@ -25,8 +25,8 @@
     "twilio-video": "^2.11.0"
   },
   "devDependencies": {
-    "@types/node": "^14.14.22",
-    "@types/react": "^17.0.0",
+    "@types/node": "^14.14.25",
+    "@types/react": "^17.0.1",
     "@typescript-eslint/eslint-plugin": "^4.14.2",
     "@typescript-eslint/parser": "^4.14.2",
     "env-exec": "^1.0.0",

@@ -37,7 +37,7 @@ export const createBodyPixStream = ({
   width,
   height,
   fps,
-  maskUpdate = 500,
+  maskUpdate = 50,
   backgroundBlurAmount = 5,
   edgeBlurAmount = 3,
   flipHorizontal = false,
@@ -77,14 +77,48 @@ export const createBodyPixStream = ({
               time = now;
               segmentation = await bodypixnet.segmentPerson(inputVideo);
             }
-            bodyPix.drawBokehEffect(
-              canvas,
-              inputVideo,
-              segmentation,
-              backgroundBlurAmount,
-              edgeBlurAmount,
-              flipHorizontal
+            //三点座標を抽出
+            const poses = segmentation.allPoses[0].keypoints
+              .filter((pos) => ['nose', 'leftEye', 'rightEye'].includes(pos.part))
+              .map(({ position }) => [
+                position.x - segmentation.width / 2,
+                position.y - segmentation.height / 2,
+              ]);
+            //中心の計算
+            const center = poses
+              .reduce((a, b) => [a[0] + b[0], a[1] + b[1]], [0, 0])
+              .map((v) => v / poses.length);
+
+            //距離
+            const length = Math.max(
+              ...poses.map((pos) =>
+                Math.sqrt(Math.pow(pos[0] - center[0], 2) + Math.pow(pos[1] - center[1], 2))
+              )
             );
+            bodyPix.drawMask(canvas, inputVideo, null);
+            const context = canvas.getContext('2d')!;
+            const px = segmentation.width / 2 + center[0];
+            const py = segmentation.height / 2 + center[1];
+            context.drawImage(
+              canvas,
+              Math.max(px - length * 5, 0),
+              Math.max(py - length * 5, 0),
+              length * 10,
+              length * 10,
+              0,
+              0,
+              length * 10,
+              length * 10
+            );
+
+            // bodyPix.drawBokehEffect(
+            //   canvas,
+            //   inputVideo,
+            //   segmentation,
+            //   backgroundBlurAmount,
+            //   edgeBlurAmount,
+            //   flipHorizontal
+            // );
             videoStream.requestFrame();
             animationNumber = requestAnimationFrame(render);
           };

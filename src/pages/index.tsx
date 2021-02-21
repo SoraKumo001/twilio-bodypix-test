@@ -12,7 +12,7 @@ const SessionName = createSessionName();
 const Page = () => {
   const refRoomInput = useRef<HTMLInputElement>(null);
   const [roomName, setRoomName] = useState<string | null>(null);
-  const [streamType, setStreamType] = useState<StreamType>('camera-blur');
+  const [streamType, setStreamType] = useState<StreamType>('camera-face');
   const token = useTwilioToken({ roomName, sessionName: SessionName });
   const stream = useLocalStream({ type: streamType });
   const { remoteStream, state, error, room } = useTwilioRoom({
@@ -47,6 +47,7 @@ const Page = () => {
         {[
           ['camera', 'Camera'],
           ['camera-blur', 'Camera(Blur)'],
+          ['camera-face', 'Camera(Face)'],
           ['screen', 'Screen'],
         ].map(([name, label]) => (
           <label key={name}>

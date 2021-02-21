@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createBodyPixStream } from '../libs/createBodyPixStream';
+import { createFaceTargetStream } from '../libs/createFaceTargetStream';
 
 const getDisplayMedia = (options?: { audio?: boolean; video?: boolean }) => {
   const promise = (navigator.mediaDevices as MediaDevices & {
@@ -9,7 +10,7 @@ const getDisplayMedia = (options?: { audio?: boolean; video?: boolean }) => {
   return new Promise<MediaStream>((_, reject) => reject);
 };
 
-export type StreamType = 'camera' | 'camera-blur' | 'screen';
+export type StreamType = 'camera' | 'camera-blur' | 'camera-face' | 'screen';
 
 interface Props {
   type: StreamType;
@@ -40,6 +41,11 @@ export const useLocalStream = ({ type, width, height }: Props) => {
         break;
       case 'camera-blur':
         createBodyPixStream({ width, height, audio: true })
+          .then(setStream)
+          .catch(() => setStream(null));
+        break;
+      case 'camera-face':
+        createFaceTargetStream({ width, height, audio: true })
           .then(setStream)
           .catch(() => setStream(null));
         break;

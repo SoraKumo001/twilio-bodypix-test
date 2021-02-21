@@ -133,6 +133,11 @@ export const createFaceTargetStream = ({
                 Math.max(py - faceLength * zoom, 0),
               ];
               context.clearRect(0, 0, size, size);
+              context.beginPath();
+              context.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2, false);
+              context.globalCompositeOperation = 'source-over';
+              context.fill();
+              context.globalCompositeOperation = 'source-in';
               context.drawImage(
                 canvas,
                 srcPos[0],
